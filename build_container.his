@@ -1,0 +1,289 @@
+脚本启动于 2020年02月29日 星期六 20时55分00秒
+]0;root@8jmulupeazlhi2mu-1111669:~[?1034h[root@8jmulupeazlhi2mu-1111669 ~]# # step1: 准备一个rootfs 
+]0;root@8jmulupeazlhi2mu-1111669:~[root@8jmulupeazlhi2mu-1111669 ~]# cd /root/container/
+]0;root@8jmulupeazlhi2mu-1111669:~/container[root@8jmulupeazlhi2mu-1111669 container]# pwd
+/root/container
+]0;root@8jmulupeazlhi2mu-1111669:~/container[root@8jmulupeazlhi2mu-1111669 container]# # 修改mount类型为private，确保后续的mount/umount不会在namespace之间传播
+]0;root@8jmulupeazlhi2mu-1111669:~/container[root@8jmulupeazlhi2mu-1111669 container]# mount --make-rprivate / 
+]0;root@8jmulupeazlhi2mu-1111669:~/container[root@8jmulupeazlhi2mu-1111669 container]# CID=$(docker run -d alpine true)
+]0;root@8jmulupeazlhi2mu-1111669:~/container[root@8jmulupeazlhi2mu-1111669 container]# docker export $CID | tar  -xf-
+]0;root@8jmulupeazlhi2mu-1111669:~/container[root@8jmulupeazlhi2mu-1111669 container]# ls # rootfs建立好啦
+[0m[38;5;27mbin[0m  [38;5;27mdev[0m  [38;5;27metc[0m  [38;5;27mhome[0m  [38;5;27mlib[0m  [38;5;27mmedia[0m  [38;5;27mmnt[0m  [38;5;27mopt[0m  [38;5;27mproc[0m  [38;5;27mroot[0m  [38;5;27mrun[0m  [38;5;27msbin[0m  [38;5;27msrv[0m  [38;5;27msys[0m  [48;5;10;38;5;16mtmp[0m  [38;5;27musr[0m  [38;5;27mvar[0m
+]0;root@8jmulupeazlhi2mu-1111669:~/container[root@8jmulupeazlhi2mu-1111669 container]# # step2: 命名空间隔离
+]0;root@8jmulupeazlhi2mu-1111669:~/container[root@8jmulupeazlhi2mu-1111669 container]# # 使用unshare为新的shell创建命名空间
+]0;root@8jmulupeazlhi2mu-1111669:~/container[root@8jmulupeazlhi2mu-1111669 container]# unshare --mount --uts --ipc --net --pid --fork /bin/bash
+]0;root@8jmulupeazlhi2mu-1111669:~/container[?1034h[root@8jmulupeazlhi2mu-1111669 container]# echo $$ # 看看新进程的pid
+1
+]0;root@8jmulupeazlhi2mu-1111669:~/container[root@8jmulupeazlhi2mu-1111669 container]# hostname unshare-bash # 修改一下hostname
+]0;root@8jmulupeazlhi2mu-1111669:~/container[root@8jmulupeazlhi2mu-1111669 container]# exec bash #替换bash，显现hostname修改后的效果
+]0;root@8jmulupeazlhi2mu-1111669:~/container[?1034h[root@unshare-bash container]# # hostname变化了
+]0;root@8jmulupeazlhi2mu-1111669:~/container[root@unshare-bash container]# # step3: 隔离挂载信息
+]0;root@8jmulupeazlhi2mu-1111669:~/container[root@unshare-bash container]# mount
+/dev/vda2 on / type xfs (rw,relatime,attr2,inode64,noquota)
+devtmpfs on /dev type devtmpfs (rw,nosuid,size=1929332k,nr_inodes=482333,mode=755)
+tmpfs on /dev/shm type tmpfs (rw,nosuid,nodev)
+devpts on /dev/pts type devpts (rw,nosuid,noexec,relatime,gid=5,mode=620,ptmxmode=000)
+mqueue on /dev/mqueue type mqueue (rw,relatime)
+hugetlbfs on /dev/hugepages type hugetlbfs (rw,relatime)
+proc on /proc type proc (rw,nosuid,nodev,noexec,relatime)
+systemd-1 on /proc/sys/fs/binfmt_misc type autofs (rw,relatime,fd=31,pgrp=0,timeout=0,minproto=5,maxproto=5,direct,pipe_ino=16865)
+sysfs on /sys type sysfs (rw,nosuid,nodev,noexec,relatime)
+securityfs on /sys/kernel/security type securityfs (rw,nosuid,nodev,noexec,relatime)
+tmpfs on /sys/fs/cgroup type tmpfs (ro,nosuid,nodev,noexec,mode=755)
+cgroup on /sys/fs/cgroup/systemd type cgroup (rw,nosuid,nodev,noexec,relatime,xattr,release_agent=/usr/lib/systemd/systemd-cgroups-agent,name=systemd)
+cgroup on /sys/fs/cgroup/cpu,cpuacct type cgroup (rw,nosuid,nodev,noexec,relatime,cpuacct,cpu)
+cgroup on /sys/fs/cgroup/pids type cgroup (rw,nosuid,nodev,noexec,relatime,pids)
+cgroup on /sys/fs/cgroup/memory type cgroup (rw,nosuid,nodev,noexec,relatime,memory)
+cgroup on /sys/fs/cgroup/perf_event type cgroup (rw,nosuid,nodev,noexec,relatime,perf_event)
+cgroup on /sys/fs/cgroup/net_cls,net_prio type cgroup (rw,nosuid,nodev,noexec,relatime,net_prio,net_cls)
+cgroup on /sys/fs/cgroup/blkio type cgroup (rw,nosuid,nodev,noexec,relatime,blkio)
+cgroup on /sys/fs/cgroup/hugetlb type cgroup (rw,nosuid,nodev,noexec,relatime,hugetlb)
+cgroup on /sys/fs/cgroup/cpuset type cgroup (rw,nosuid,nodev,noexec,relatime,cpuset)
+cgroup on /sys/fs/cgroup/freezer type cgroup (rw,nosuid,nodev,noexec,relatime,freezer)
+cgroup on /sys/fs/cgroup/devices type cgroup (rw,nosuid,nodev,noexec,relatime,devices)
+pstore on /sys/fs/pstore type pstore (rw,nosuid,nodev,noexec,relatime)
+configfs on /sys/kernel/config type configfs (rw,relatime)
+debugfs on /sys/kernel/debug type debugfs (rw,relatime)
+tmpfs on /run type tmpfs (rw,nosuid,nodev,mode=755)
+tmpfs on /run/user/0 type tmpfs (rw,nosuid,nodev,relatime,size=388004k,mode=700)
+]0;root@8jmulupeazlhi2mu-1111669:~/container[root@unshare-bash container]# # 还是能看到host上的mount
+]0;root@8jmulupeazlhi2mu-1111669:~/container[root@unshare-bash container]# ps -ef
+UID        PID  PPID  C STIME TTY          TIME CMD
+root         1     0  0 2月28 ?       00:00:02 /usr/lib/systemd/systemd --switched-root --system --deserialize 22
+root         2     0  0 2月28 ?       00:00:00 [kthreadd]
+root         3     2  0 2月28 ?       00:00:00 [ksoftirqd/0]
+root         5     2  0 2月28 ?       00:00:00 [kworker/0:0H]
+root         6     2  0 2月28 ?       00:00:01 [kworker/u4:0]
+root         7     2  0 2月28 ?       00:00:00 [migration/0]
+root         8     2  0 2月28 ?       00:00:00 [rcu_bh]
+root         9     2  0 2月28 ?       00:00:05 [rcu_sched]
+root        10     2  0 2月28 ?       00:00:00 [lru-add-drain]
+root        11     2  0 2月28 ?       00:00:00 [watchdog/0]
+root        12     2  0 2月28 ?       00:00:00 [watchdog/1]
+root        13     2  0 2月28 ?       00:00:00 [migration/1]
+root        14     2  0 2月28 ?       00:00:00 [ksoftirqd/1]
+root        16     2  0 2月28 ?       00:00:00 [kworker/1:0H]
+root        18     2  0 2月28 ?       00:00:00 [kdevtmpfs]
+root        19     2  0 2月28 ?       00:00:00 [netns]
+root        20     2  0 2月28 ?       00:00:00 [khungtaskd]
+root        21     2  0 2月28 ?       00:00:00 [writeback]
+root        22     2  0 2月28 ?       00:00:00 [kintegrityd]
+root        23     2  0 2月28 ?       00:00:00 [bioset]
+root        24     2  0 2月28 ?       00:00:00 [bioset]
+root        25     2  0 2月28 ?       00:00:00 [bioset]
+root        26     2  0 2月28 ?       00:00:00 [kblockd]
+root        27     2  0 2月28 ?       00:00:00 [md]
+root        28     2  0 2月28 ?       00:00:00 [edac-poller]
+root        29     2  0 2月28 ?       00:00:00 [watchdogd]
+root        36     2  0 2月28 ?       00:00:00 [kswapd0]
+root        37     2  0 2月28 ?       00:00:00 [ksmd]
+root        38     2  0 2月28 ?       00:00:00 [khugepaged]
+root        39     2  0 2月28 ?       00:00:00 [crypto]
+root        47     2  0 2月28 ?       00:00:00 [kthrotld]
+root        49     2  0 2月28 ?       00:00:00 [kmpath_rdacd]
+root        50     2  0 2月28 ?       00:00:00 [kaluad]
+root        51     2  0 2月28 ?       00:00:00 [kpsmoused]
+root        52     2  0 2月28 ?       00:00:00 [ipv6_addrconf]
+root        65     2  0 2月28 ?       00:00:00 [deferwq]
+root        97     2  0 2月28 ?       00:00:00 [kauditd]
+root       644     2  0 2月28 ?       00:00:00 [ata_sff]
+root       685     2  0 2月28 ?       00:00:00 [scsi_eh_0]
+root       692     2  0 2月28 ?       00:00:00 [scsi_tmf_0]
+root       696     2  0 2月28 ?       00:00:00 [scsi_eh_1]
+root       701     2  0 2月28 ?       00:00:00 [scsi_tmf_1]
+root       712     2  0 2月28 ?       00:00:01 [kworker/u4:3]
+root       852     2  0 2月28 ?       00:00:00 [ttm_swap]
+root      1769     2  0 2月28 ?       00:00:00 [kworker/1:1H]
+root      1823     2  0 2月28 ?       00:00:00 [bioset]
+root      1824     2  0 2月28 ?       00:00:00 [xfsalloc]
+root      1825     2  0 2月28 ?       00:00:00 [xfs_mru_cache]
+root      1834     2  0 2月28 ?       00:00:00 [xfs-buf/vda2]
+root      1835     2  0 2月28 ?       00:00:00 [xfs-data/vda2]
+root      1844     2  0 2月28 ?       00:00:00 [xfs-conv/vda2]
+root      1845     2  0 2月28 ?       00:00:00 [xfs-cil/vda2]
+root      1846     2  0 2月28 ?       00:00:00 [xfs-reclaim/vda]
+root      1847     2  0 2月28 ?       00:00:00 [xfs-log/vda2]
+root      1848     2  0 2月28 ?       00:00:00 [xfs-eofblocks/v]
+root      1849     2  0 2月28 ?       00:00:26 [xfsaild/vda2]
+root      1850     2  0 2月28 ?       00:00:00 [kworker/0:1H]
+root      1919     1  0 2月28 ?       00:00:03 /usr/lib/systemd/systemd-journald
+root      1943     1  0 2月28 ?       00:00:00 /usr/sbin/lvmetad -f
+root      1944     1  0 2月28 ?       00:00:00 /usr/lib/systemd/systemd-udevd
+root      3666     2  0 2月28 ?       00:00:00 [nfit]
+root      3717     1  0 2月28 ?       00:00:00 /sbin/auditd
+root      3747     1  0 2月28 ?       00:00:00 /usr/sbin/smartd -n -q never
+root      3749     1  0 2月28 ?       00:00:05 /sbin/rngd -f
+dbus      3750     1  0 2月28 ?       00:00:01 /usr/bin/dbus-daemon --system --address=systemd: --nofork --nopidfile --systemd-activation
+chrony    3752     1  0 2月28 ?       00:00:00 /usr/sbin/chronyd
+root      3757     1  0 2月28 ?       00:00:01 /usr/sbin/NetworkManager --no-daemon
+root      3759     1  0 2月28 ?       00:00:03 /usr/sbin/irqbalance --foreground
+polkitd   3760     1  0 2月28 ?       00:00:00 /usr/lib/polkit-1/polkitd --no-debug
+root      3762     1  0 2月28 ?       00:00:00 /usr/sbin/abrtd -d -s
+root      3764     1  0 2月28 ?       00:00:00 /usr/bin/abrt-watch-log -F BUG: WARNING: at WARNING: CPU: INFO: possible recursive locking detected ernel BUG at list_del corrupti
+root      3765     1  0 2月28 ?       00:00:00 /usr/lib/systemd/systemd-logind
+libstor+  3766     1  0 2月28 ?       00:00:00 /usr/bin/lsmd -d
+root      3846  3757  0 2月28 ?       00:00:00 /sbin/dhclient -d -q -sf /usr/libexec/nm-dhcp-helper -pf /var/run/dhclient-eth0.pid -lf /var/lib/NetworkManager/dhclient-d6487b07-
+root      4070     1  0 2月28 ?       00:00:07 /usr/bin/python2 -Es /usr/sbin/tuned -l -P
+root      4301     1  0 2月28 ?       00:00:00 /usr/libexec/postfix/master -w
+postfix   4309  4301  0 2月28 ?       00:00:00 qmgr -l -t unix -u
+root      4353     1  0 2月28 ?       00:00:04 /usr/sbin/rsyslogd -n
+root      4382     1  0 2月28 ?       00:00:02 /usr/sbin/sshd -D
+root      4388     1  0 2月28 ?       00:00:00 /usr/sbin/crond -n
+root      4391     1  0 2月28 ?       00:00:00 /usr/sbin/atd -f
+root      4412     1  0 2月28 tty1    00:00:00 /sbin/agetty --noclear tty1 linux
+root      4579     1  0 2月28 ?       00:00:50 /CloudResetPwdUpdateAgent/bin/./wrapper /CloudResetPwdUpdateAgent/bin/../conf/wrapper.conf wrapper.syslog.ident=cloudResetPwdUpdat
+root      4667  4579  0 2月28 ?       00:01:30 /CloudResetPwdUpdateAgent/depend/jre1.8.0_131/bin/java -Dorg.tanukisoftware.wrapper.WrapperSimpleApp.maxStartMainWait=40 -Djava.li
+root      4918     1  1 2月28 ?       00:14:11 python /usr/bin/denyhosts.py --daemon --config=/usr/share/denyhosts/denyhosts.cfg
+root      4937     1  0 2月28 ?       00:02:12 /usr/bin/containerd
+root      4939     1  0 2月28 ?       00:01:01 /usr/bin/dockerd -H fd:// --containerd=/run/containerd/containerd.sock
+postfix  23262  4301  0 19:55 ?        00:00:00 pickup -l -t unix -u
+root     23271  4382  0 19:58 ?        00:00:00 sshd: root@pts/0
+root     23273 23271  0 19:58 pts/0    00:00:00 -bash
+root     23470     2  0 20:12 ?        00:00:00 [kworker/0:7]
+root     23471     2  0 20:12 ?        00:00:00 [kworker/0:8]
+root     23696     2  0 20:35 ?        00:00:00 [kworker/1:1]
+root     24027     2  0 20:46 ?        00:00:00 [kworker/1:2]
+root     24184     2  0 20:47 ?        00:00:00 [kworker/0:0]
+root     24814     2  0 20:51 ?        00:00:00 [kworker/1:0]
+root     24852     2  0 20:53 ?        00:00:00 [kworker/0:1]
+root     24853     2  0 20:53 ?        00:00:00 [kworker/0:2]
+root     24854     2  0 20:53 ?        00:00:00 [kworker/0:3]
+root     24855     2  0 20:53 ?        00:00:00 [kworker/0:4]
+root     24860  4382  0 20:53 ?        00:00:00 sshd: root@pts/3
+root     24862 24860  0 20:54 pts/3    00:00:00 -bash
+root     24880     1  0 20:54 ?        00:00:00 /usr/sbin/abrt-dbus -t133
+root     24901     2  0 20:54 ?        00:00:00 [kworker/u4:1]
+root     24922 23273  0 20:55 pts/0    00:00:00 script -t -a build_container.his
+root     24924 24922  0 20:55 pts/0    00:00:00 script -t -a build_container.his
+root     24925 24924  0 20:55 pts/1    00:00:00 bash -i
+root     25087 24925  0 20:55 pts/1    00:00:00 unshare --mount --uts --ipc --net --pid --fork /bin/bash
+root     25089 25087  0 20:55 pts/1    00:00:00 bash
+root     25151 25089  0 20:56 pts/1    00:00:00 ps -ef
+]0;root@8jmulupeazlhi2mu-1111669:~/container[root@unshare-bash container]# # 还是能看到host上的进程
+]0;root@8jmulupeazlhi2mu-1111669:~/container[root@unshare-bash container]# # 重新mount一下/proc
+]0;root@8jmulupeazlhi2mu-1111669:~/container[root@unshare-bash container]# mount -t proc none /proc
+]0;root@8jmulupeazlhi2mu-1111669:~/container[root@unshare-bash container]# ps -ef
+UID        PID  PPID  C STIME TTY          TIME CMD
+root         1     0  0 20:55 pts/1    00:00:00 bash
+root        62     1  0 20:56 pts/1    00:00:00 ps -ef
+]0;root@8jmulupeazlhi2mu-1111669:~/container[root@unshare-bash container]# # 啊哈，现在我们的ps正常了!
+]0;root@8jmulupeazlhi2mu-1111669:~/container[root@unshare-bash container]# mount --bind /root/container/ /root/container/
+]0;root@8jmulupeazlhi2mu-1111669:~/container[root@unshare-bash container]# cd /root/container/
+]0;root@8jmulupeazlhi2mu-1111669:~/container[root@unshare-bash container]# mkdir oldroot/
+]0;root@8jmulupeazlhi2mu-1111669:~/container[root@unshare-bash container]# pivot_root . oldroot/ 
+]0;root@8jmulupeazlhi2mu-1111669:~/container[root@unshare-bash container]# cd /
+]0;root@8jmulupeazlhi2mu-1111669:/[root@unshare-bash /]# PATH=$PATH:/bin:/sbin 
+]0;root@8jmulupeazlhi2mu-1111669:/[root@unshare-bash /]# mount -t proc none /proc
+]0;root@8jmulupeazlhi2mu-1111669:/[root@unshare-bash /]# ps -ef
+PID   USER     TIME  COMMAND
+    1 root      0:00 bash
+   67 root      0:00 ps -ef
+]0;root@8jmulupeazlhi2mu-1111669:/[root@unshare-bash /]# mount
+rootfs on / type rootfs (rw)
+/dev/vda2 on /oldroot type xfs (rw,relatime,attr2,inode64,noquota)
+devtmpfs on /oldroot/dev type devtmpfs (rw,nosuid,size=1929332k,nr_inodes=482333,mode=755)
+tmpfs on /oldroot/dev/shm type tmpfs (rw,nosuid,nodev)
+devpts on /oldroot/dev/pts type devpts (rw,nosuid,noexec,relatime,gid=5,mode=620,ptmxmode=000)
+mqueue on /oldroot/dev/mqueue type mqueue (rw,relatime)
+hugetlbfs on /oldroot/dev/hugepages type hugetlbfs (rw,relatime)
+proc on /oldroot/proc type proc (rw,nosuid,nodev,noexec,relatime)
+systemd-1 on /oldroot/proc/sys/fs/binfmt_misc type autofs (rw,relatime,fd=31,pgrp=0,timeout=0,minproto=5,maxproto=5,direct,pipe_ino=16865)
+sysfs on /oldroot/sys type sysfs (rw,nosuid,nodev,noexec,relatime)
+securityfs on /oldroot/sys/kernel/security type securityfs (rw,nosuid,nodev,noexec,relatime)
+tmpfs on /oldroot/sys/fs/cgroup type tmpfs (ro,nosuid,nodev,noexec,mode=755)
+cgroup on /oldroot/sys/fs/cgroup/systemd type cgroup (rw,nosuid,nodev,noexec,relatime,xattr,release_agent=/usr/lib/systemd/systemd-cgroups-agent,name=systemd)
+cgroup on /oldroot/sys/fs/cgroup/cpu,cpuacct type cgroup (rw,nosuid,nodev,noexec,relatime,cpuacct,cpu)
+cgroup on /oldroot/sys/fs/cgroup/pids type cgroup (rw,nosuid,nodev,noexec,relatime,pids)
+cgroup on /oldroot/sys/fs/cgroup/memory type cgroup (rw,nosuid,nodev,noexec,relatime,memory)
+cgroup on /oldroot/sys/fs/cgroup/perf_event type cgroup (rw,nosuid,nodev,noexec,relatime,perf_event)
+cgroup on /oldroot/sys/fs/cgroup/net_cls,net_prio type cgroup (rw,nosuid,nodev,noexec,relatime,net_prio,net_cls)
+cgroup on /oldroot/sys/fs/cgroup/blkio type cgroup (rw,nosuid,nodev,noexec,relatime,blkio)
+cgroup on /oldroot/sys/fs/cgroup/hugetlb type cgroup (rw,nosuid,nodev,noexec,relatime,hugetlb)
+cgroup on /oldroot/sys/fs/cgroup/cpuset type cgroup (rw,nosuid,nodev,noexec,relatime,cpuset)
+cgroup on /oldroot/sys/fs/cgroup/freezer type cgroup (rw,nosuid,nodev,noexec,relatime,freezer)
+cgroup on /oldroot/sys/fs/cgroup/devices type cgroup (rw,nosuid,nodev,noexec,relatime,devices)
+pstore on /oldroot/sys/fs/pstore type pstore (rw,nosuid,nodev,noexec,relatime)
+configfs on /oldroot/sys/kernel/config type configfs (rw,relatime)
+debugfs on /oldroot/sys/kernel/debug type debugfs (rw,relatime)
+tmpfs on /oldroot/run type tmpfs (rw,nosuid,nodev,mode=755)
+tmpfs on /oldroot/run/user/0 type tmpfs (rw,nosuid,nodev,relatime,size=388004k,mode=700)
+none on /oldroot/proc type proc (rw,relatime)
+/dev/vda2 on / type xfs (rw,relatime,attr2,inode64,noquota)
+none on /proc type proc (rw,relatime)
+]0;root@8jmulupeazlhi2mu-1111669:/[root@unshare-bash /]# # 依旧能看到host上的信息
+]0;root@8jmulupeazlhi2mu-1111669:/[root@unshare-bash /]# umount -a # umount全部
+umount: can't unmount /: Resource busy
+umount: can't unmount /oldroot: Resource busy
+umount: can't unmount /: Resource busy
+]0;root@8jmulupeazlhi2mu-1111669:/[root@unshare-bash /]# mount -t proc none /proc # 重新mount /proc
+]0;root@8jmulupeazlhi2mu-1111669:/[root@unshare-bash /]# mount
+rootfs on / type rootfs (rw)
+/dev/vda2 on /oldroot type xfs (rw,relatime,attr2,inode64,noquota)
+/dev/vda2 on / type xfs (rw,relatime,attr2,inode64,noquota)
+none on /proc type proc (rw,relatime)
+]0;root@8jmulupeazlhi2mu-1111669:/[root@unshare-bash /]# # oldroot 还在
+]0;root@8jmulupeazlhi2mu-1111669:/[root@unshare-bash /]# umount -l oldroot/ # lazy umount
+]0;root@8jmulupeazlhi2mu-1111669:/[root@unshare-bash /]# mount
+rootfs on / type rootfs (rw)
+/dev/vda2 on / type xfs (rw,relatime,attr2,inode64,noquota)
+none on /proc type proc (rw,relatime)
+]0;root@8jmulupeazlhi2mu-1111669:/[root@unshare-bash /]# # 挂在信息隔离完成[2P信息隔离完成载信息隔离完成入信息隔离完成[2P信息隔离完成
+]0;root@8jmulupeazlhi2mu-1111669:/[root@unshare-bash /]# # step4: 为我们的容器添加网络
+]0;root@8jmulupeazlhi2mu-1111669:/[root@unshare-bash /]# ping 8.8.8.8 # 配置网络前，网络显然是不通的
+PING 8.8.8.8 (8.8.8.8): 56 data bytes
+ping: sendto: Network unreachable
+]0;root@8jmulupeazlhi2mu-1111669:/[root@unshare-bash /]# ifconfig -a
+lo        Link encap:Local Loopback  
+          LOOPBACK  MTU:65536  Metric:1
+          RX packets:0 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:0 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000 
+          RX bytes:0 (0.0 B)  TX bytes:0 (0.0 B)
+
+]0;root@8jmulupeazlhi2mu-1111669:/[root@unshare-bash /]# # 配置网络中..
+]0;root@8jmulupeazlhi2mu-1111669:/[root@unshare-bash /]# ifconfig -a # 设置完之后回来看
+c25087    Link encap:Ethernet  HWaddr 4E:2C:5A:A5:93:48  
+          BROADCAST MULTICAST  MTU:1500  Metric:1
+          RX packets:0 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:0 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000 
+          RX bytes:0 (0.0 B)  TX bytes:0 (0.0 B)
+
+lo        Link encap:Local Loopback  
+          LOOPBACK  MTU:65536  Metric:1
+          RX packets:0 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:0 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000 
+          RX bytes:0 (0.0 B)  TX bytes:0 (0.0 B)
+
+]0;root@8jmulupeazlhi2mu-1111669:/[root@unshare-bash /]# ip link set lo up
+]0;root@8jmulupeazlhi2mu-1111669:/[root@unshare-bash /]# ip link set c11363 name eth0 up
+ip: ioctl 0x8923 failed: No such device
+]0;root@8jmulupeazlhi2mu-1111669:/[root@unshare-bash /]# ip link set c11363 name eth0 up[1P[1P[1P[1P[1P[1@2[1@5[1@0[1@8[1@7
+]0;root@8jmulupeazlhi2mu-1111669:/[root@unshare-bash /]# # 为eth0设置一个随机的docker网段内的IP地址
+]0;root@8jmulupeazlhi2mu-1111669:/[root@unshare-bash /]# ip addr add 172.17.42.3/16 dev eth0
+]0;root@8jmulupeazlhi2mu-1111669:/[root@unshare-bash /]# # 配置默认路由走docker的默认网关
+]0;root@8jmulupeazlhi2mu-1111669:/[root@unshare-bash /]# ip route add default via 172.17.0.1
+]0;root@8jmulupeazlhi2mu-1111669:/[root@unshare-bash /]# ping 8.8.8.8
+PING 8.8.8.8 (8.8.8.8): 56 data bytes
+64 bytes from 8.8.8.8: seq=0 ttl=43 time=17.378 ms
+64 bytes from 8.8.8.8: seq=2 ttl=43 time=17.341 ms
+64 bytes from 8.8.8.8: seq=3 ttl=43 time=17.149 ms
+64 bytes from 8.8.8.8: seq=4 ttl=43 time=17.168 ms
+^C
+--- 8.8.8.8 ping statistics ---
+5 packets transmitted, 4 packets received, 20% packet loss
+round-trip min/avg/max = 17.149/17.259/17.378 ms
+]0;root@8jmulupeazlhi2mu-1111669:/[root@unshare-bash /]# chroot / /bo[K[Ksh
+chroot: can't execute '/sh': No such file or directory
+]0;root@8jmulupeazlhi2mu-1111669:/[root@unshare-bash /]# chroot /
+chroot: can't execute '/bin/bash': No such file or directory
+]0;root@8jmulupeazlhi2mu-1111669:/[root@unshare-bash /]# ls[K[Kchroot /[K/ bin/sh
+/ # [6nl[Jl[J#chroot 切换到容器跟[Jrootfs
+/ # [6nd[Jls
+[1;34mbin[m      [1;34mdev[m      [1;34metc[m      [1;34mhome[m     [1;34mlib[m      [1;34mmedia[m    [1;34mmnt[m      [1;34moldroot[m  [1;34mopt[m      [1;34mproc[m     [1;34mroot[m     [1;34mrun[m      [1;34msbin[m     [1;34msrv[m      [1;34msys[m      [1;34mtmp[m      [1;34musr[m      [1;34mvar[m
+/ # [6nd[J# 容器创建完成
+/ # [6n]0;root@8jmulupeazlhi2mu-1111669:/[root@unshare-bash /]# exit
+]0;root@8jmulupeazlhi2mu-1111669:~/container[root@8jmulupeazlhi2mu-1111669 container]# exit
+
+Script done on 2020年02月29日 星期六 21时00分32秒
